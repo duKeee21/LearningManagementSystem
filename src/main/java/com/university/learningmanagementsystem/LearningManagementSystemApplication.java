@@ -1,4 +1,4 @@
-package com.university.LearningManagementSystem;
+package com.university.learningmanagementsystem;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
