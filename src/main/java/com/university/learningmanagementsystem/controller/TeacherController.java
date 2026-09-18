@@ -1,8 +1,8 @@
 package com.university.learningmanagementsystem.controller;
 
-import com.university.learningmanagementsystem.dto.Teacher.TeacherCreateDto;
-import com.university.learningmanagementsystem.dto.Teacher.TeacherDto;
-import com.university.learningmanagementsystem.dto.Teacher.TeacherUpdateDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
 import com.university.learningmanagementsystem.service.TeacherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

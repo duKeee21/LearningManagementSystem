@@ -1,4 +1,4 @@
-package com.university.learningmanagementsystem.dto.Teacher;
+package com.university.learningmanagementsystem.dto.teacher;
 
 import jakarta.validation.constraints.NotBlank;
 

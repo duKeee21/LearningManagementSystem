@@ -4,32 +4,28 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @Entity
-@Table(name = "teachers")
+@Table(name = "courses")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @SQLRestriction("is_deleted = false")
-public class Teacher {
+public class Course {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "first_name", nullable = false)
-    private String firstName;
+    @Column(nullable = false)
+    private String name;
 
-    @Column(name = "last_name", nullable = false)
-    private String lastName;
+    private String description;
 
-    @OneToMany(mappedBy = "teacher")
-    @Builder.Default
-    private List<Course> courses = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "teacher_id", nullable = false)
+    private Teacher teacher;
 
     @Column(name = "is_deleted", nullable = false)
     @Builder.Default

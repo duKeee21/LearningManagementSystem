@@ -1,8 +1,8 @@
 package com.university.learningmanagementsystem.service;
 
-import com.university.learningmanagementsystem.dto.Teacher.TeacherCreateDto;
-import com.university.learningmanagementsystem.dto.Teacher.TeacherDto;
-import com.university.learningmanagementsystem.dto.Teacher.TeacherUpdateDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
 import com.university.learningmanagementsystem.entity.Teacher;
 import com.university.learningmanagementsystem.mapper.TeacherMapper;
 import com.university.learningmanagementsystem.repository.TeacherRepository;
