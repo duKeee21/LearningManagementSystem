@@ -10,7 +10,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: true
     open-in-view: false
     properties:
@@ -20,6 +20,11 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     enabled: true
-    drop-first: true
+    drop-first: false
     default-schema: public
-    clear-checksums: true
+    clear-checksums: false
+
+app:
+    scheduler:
+      cleanup:
+        cron: "0 0 3 * * *"
