@@ -25,6 +25,6 @@ spring:
     clear-checksums: false
 
 app:
-    scheduler:
-      cleanup:
-        cron: "0 0 3 * * *"
+  scheduler:
+    cleanup:
+      cron: "0 0 3 * * *"

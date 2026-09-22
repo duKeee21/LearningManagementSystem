@@ -60,7 +60,7 @@ public class ScheduleService {
     @Transactional
     public ScheduleDto create(ScheduleCreateDto request) {
         Schedule schedule = scheduleMapper.toEntity(request);
-        fillRelations(schedule, request);
+        bindRelations(schedule, request.groupId(), request.teacherId(), request.courseId());
         Schedule saved = scheduleRepository.save(schedule);
         return scheduleMapper.toDto(saved);
     }
@@ -78,21 +78,15 @@ public class ScheduleService {
                 .orElseThrow(() -> new EntityNotFoundException("Расписания с id: " + id + " не существует!"));
 
         scheduleMapper.update(request, schedule);
-        fillRelations(schedule, request);
+        bindRelations(schedule, request.groupId(), request.teacherId(), request.courseId());
 
         return scheduleMapper.toDto(schedule);
     }
 
-    private void fillRelations(Schedule schedule, ScheduleCreateDto request) {
-        schedule.setGroup(requireGroup(request.groupId()));
-        schedule.setTeacher(requireTeacher(request.teacherId()));
-        schedule.setCourse(requireCourse(request.courseId()));
-    }
-
-    private void fillRelations(Schedule schedule, ScheduleUpdateDto request) {
-        schedule.setGroup(requireGroup(request.groupId()));
-        schedule.setTeacher(requireTeacher(request.teacherId()));
-        schedule.setCourse(requireCourse(request.courseId()));
+    private void bindRelations(Schedule schedule, Long groupId, Long teacherId, Long courseId) {
+        schedule.setGroup(requireGroup(groupId));
+        schedule.setTeacher(requireTeacher(teacherId));
+        schedule.setCourse(requireCourse(courseId));
     }
 
     private Group requireGroup(Long id) {
