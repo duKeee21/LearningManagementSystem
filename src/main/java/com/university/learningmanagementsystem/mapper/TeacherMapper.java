@@ -7,8 +7,12 @@ import com.university.learningmanagementsystem.entity.Teacher;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.ERROR
+)
 public interface TeacherMapper {
 
     TeacherDto toDto(Teacher teacher);
@@ -16,10 +20,14 @@ public interface TeacherMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "courses", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Teacher toEntity(TeacherCreateDto dto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "courses", ignore = true)
-    void update(TeacherUpdateDto dto, @MappingTarget Teacher teacher);
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void mapInto(TeacherUpdateDto dto, @MappingTarget Teacher teacher);
 }

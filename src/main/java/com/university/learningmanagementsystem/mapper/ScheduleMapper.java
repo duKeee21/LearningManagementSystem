@@ -7,8 +7,12 @@ import com.university.learningmanagementsystem.entity.Schedule;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
+@Mapper(
+        componentModel = "spring",
+        unmappedTargetPolicy = ReportingPolicy.ERROR
+)
 public interface ScheduleMapper {
 
     @Mapping(target = "groupId", source = "group.id")
@@ -21,6 +25,8 @@ public interface ScheduleMapper {
     @Mapping(target = "teacher", ignore = true)
     @Mapping(target = "course", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     Schedule toEntity(ScheduleCreateDto dto);
 
     @Mapping(target = "id", ignore = true)
@@ -28,5 +34,7 @@ public interface ScheduleMapper {
     @Mapping(target = "teacher", ignore = true)
     @Mapping(target = "course", ignore = true)
     @Mapping(target = "deleted", ignore = true)
-    void update(ScheduleUpdateDto dto, @MappingTarget Schedule schedule);
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void mapInto(ScheduleUpdateDto dto, @MappingTarget Schedule schedule);
 }

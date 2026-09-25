@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 8-add-audit-columns
+      author: serj
+      changes:
+        - addColumn:
+            tableName: students
+            columns:
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false

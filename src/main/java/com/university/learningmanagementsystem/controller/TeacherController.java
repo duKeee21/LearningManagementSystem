@@ -1,17 +1,24 @@
 package com.university.learningmanagementsystem.controller;
 
+import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
 import com.university.learningmanagementsystem.service.TeacherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/teachers")
@@ -21,7 +28,7 @@ public class TeacherController {
     private final TeacherService teacherService;
 
     @GetMapping
-    public ResponseEntity<Page<TeacherDto>> findAll(
+    public ResponseEntity<PageResponse<TeacherDto>> findAll(
             @PageableDefault(size = 20, sort = "lastName") Pageable pageable) {
 
         return ResponseEntity.ok(teacherService.findAll(pageable));

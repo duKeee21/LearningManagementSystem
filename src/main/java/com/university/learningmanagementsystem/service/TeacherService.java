@@ -1,12 +1,12 @@
 package com.university.learningmanagementsystem.service;
 
+import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
 import com.university.learningmanagementsystem.entity.Teacher;
 import com.university.learningmanagementsystem.mapper.TeacherMapper;
 import com.university.learningmanagementsystem.repository.TeacherRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,15 +21,14 @@ public class TeacherService {
     private final TeacherMapper teacherMapper;
 
     @Transactional(readOnly = true)
-    public Page<TeacherDto> findAll(Pageable pageable) {
-        return teacherRepository.findAll(pageable).map(teacherMapper::toDto);
+    public PageResponse<TeacherDto> findAll(Pageable pageable) {
+        Page<TeacherDto> page = teacherRepository.findAll(pageable).map(teacherMapper::toDto);
+        return PageResponse.from(page);
     }
 
     @Transactional(readOnly = true)
     public TeacherDto findById(Long id) {
-        Teacher teacher = teacherRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Учителя с id: " + id + " не существует!"));
-        return teacherMapper.toDto(teacher);
+        return teacherMapper.toDto(teacherRepository.requireById(id));
     }
 
     @Transactional
@@ -41,17 +40,15 @@ public class TeacherService {
 
     @Transactional
     public void delete(Long id) {
-        Teacher teacher = teacherRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Учителя с id: " + id + " не существует!"));
-
+        Teacher teacher = teacherRepository.requireById(id);
         teacher.setDeleted(true);
     }
 
     @Transactional
     public TeacherDto update(Long id, TeacherUpdateDto request) {
-        Teacher teacher = teacherRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Учителя с id: " + id + " не существует!"));
-        teacherMapper.update(request, teacher);
+        Teacher teacher = teacherRepository.requireById(id);
+
+        teacherMapper.mapInto(request, teacher);
         return teacherMapper.toDto(teacher);
     }
 }

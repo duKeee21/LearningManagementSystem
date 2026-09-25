@@ -1,5 +1,6 @@
 package com.university.learningmanagementsystem.service;
 
+import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.group.GroupCreateDto;
 import com.university.learningmanagementsystem.dto.group.GroupDto;
 import com.university.learningmanagementsystem.dto.group.GroupUpdateDto;
@@ -27,15 +28,15 @@ public class GroupService {
     private final StudentRepository studentRepository;
 
     @Transactional(readOnly = true)
-    public Page<GroupDto> findAll(Pageable pageable) {
-        return groupRepository.findAll(pageable).map(groupMapper::toDto);
+    public PageResponse<GroupDto> findAll(Pageable pageable) {
+        Page<GroupDto> page = groupRepository.findAll(pageable).map(groupMapper::toDto);
+        return PageResponse.from(page);
     }
+
 
     @Transactional(readOnly = true)
     public GroupDto findById(Long id) {
-        Group group = groupRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Группы с id: " + id + " не существует!"));
-        return groupMapper.toDto(group);
+        return groupMapper.toDto(groupRepository.requireById(id));
     }
 
     @Transactional
@@ -48,21 +49,22 @@ public class GroupService {
 
     @Transactional
     public void delete(Long id) {
-        Group group = groupRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Группы с id: " + id + " не существует!"));
+        Group group = groupRepository.requireById(id);
         group.setDeleted(true);
     }
 
     @Transactional
     public GroupDto update(Long id, GroupUpdateDto request) {
-        Group group = groupRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Группы с id: " + id + " не существует!"));
+        Group group = groupRepository.requireById(id);
 
-        groupMapper.update(request, group);
+        groupMapper.mapInto(request, group);
 
-        new HashSet<>(group.getStudents()).forEach(group::removeStudent);
+        Set<Student> oldStudents = new HashSet<>(group.getStudents());
+        for (Student student : oldStudents) {
+            group.getStudents().remove(student);
+            student.getGroups().remove(group);
+        }
         addStudents(group, request.studentIds());
-
         return groupMapper.toDto(group);
     }
 
@@ -70,10 +72,14 @@ public class GroupService {
         if (studentIds == null || studentIds.isEmpty()) {
             return;
         }
-        Set<Student> students = new HashSet<>(studentRepository.findAllById(studentIds));
+        Set<Student> students = studentRepository.findAllByIdIn(studentIds);
         if (students.size() != studentIds.size()) {
             throw new EntityNotFoundException("Студенты не найдены: " + studentIds);
         }
-        students.forEach(group::addStudent);
+        for (Student student : students) {
+            group.getStudents().add(student);
+            student.getGroups().add(group);
+        }
+
     }
 }
