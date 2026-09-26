@@ -3,16 +3,19 @@ package com.university.learningmanagementsystem.service;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.group.GroupCreateDto;
 import com.university.learningmanagementsystem.dto.group.GroupDto;
+import com.university.learningmanagementsystem.dto.group.GroupFilter;
 import com.university.learningmanagementsystem.dto.group.GroupUpdateDto;
 import com.university.learningmanagementsystem.entity.Group;
 import com.university.learningmanagementsystem.entity.Student;
 import com.university.learningmanagementsystem.mapper.GroupMapper;
 import com.university.learningmanagementsystem.repository.GroupRepository;
 import com.university.learningmanagementsystem.repository.StudentRepository;
+import com.university.learningmanagementsystem.specification.GroupSpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,11 +31,11 @@ public class GroupService {
     private final StudentRepository studentRepository;
 
     @Transactional(readOnly = true)
-    public PageResponse<GroupDto> findAll(Pageable pageable) {
-        Page<GroupDto> page = groupRepository.findAll(pageable).map(groupMapper::toDto);
+    public PageResponse<GroupDto> findAll(GroupFilter filter, Pageable pageable) {
+        Specification<Group> specification = GroupSpecifications.byFilter(filter);
+        Page<GroupDto> page = groupRepository.findAll(specification, pageable).map(groupMapper::toDto);
         return PageResponse.from(page);
     }
-
 
     @Transactional(readOnly = true)
     public GroupDto findById(Long id) {

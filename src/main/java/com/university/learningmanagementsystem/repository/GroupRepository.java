@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Set;
 
 @Repository
-public interface GroupRepository  extends JpaRepository<Group, Long>, JpaSpecificationExecutor<Group> {
+public interface GroupRepository extends JpaRepository<Group, Long>, JpaSpecificationExecutor<Group> {
     Set<Group> findAllByIdIn(Set<Long> ids);
 
     default Group requireById(Long id) {

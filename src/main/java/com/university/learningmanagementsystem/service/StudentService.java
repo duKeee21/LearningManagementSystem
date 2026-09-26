@@ -3,16 +3,19 @@ package com.university.learningmanagementsystem.service;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.student.StudentCreateDto;
 import com.university.learningmanagementsystem.dto.student.StudentDto;
+import com.university.learningmanagementsystem.dto.student.StudentFilter;
 import com.university.learningmanagementsystem.dto.student.StudentUpdateDto;
 import com.university.learningmanagementsystem.entity.Group;
 import com.university.learningmanagementsystem.entity.Student;
 import com.university.learningmanagementsystem.mapper.StudentMapper;
 import com.university.learningmanagementsystem.repository.GroupRepository;
 import com.university.learningmanagementsystem.repository.StudentRepository;
+import com.university.learningmanagementsystem.specification.StudentSpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +31,9 @@ public class StudentService {
     private final GroupRepository groupRepository;
 
     @Transactional(readOnly = true)
-    public PageResponse<StudentDto> findAll(Pageable pageable) {
-        Page<StudentDto> page = studentRepository.findAll(pageable).map(studentMapper::toDto);
+    public PageResponse<StudentDto> findAll(StudentFilter filter, Pageable pageable) {
+        Specification<Student> specification = StudentSpecifications.byFilter(filter);
+        Page<StudentDto> page = studentRepository.findAll(specification, pageable).map(studentMapper::toDto);
         return PageResponse.from(page);
     }
 

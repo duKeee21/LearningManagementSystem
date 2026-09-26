@@ -3,13 +3,16 @@ package com.university.learningmanagementsystem.service;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
+import com.university.learningmanagementsystem.dto.teacher.TeacherFilter;
 import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
 import com.university.learningmanagementsystem.entity.Teacher;
 import com.university.learningmanagementsystem.mapper.TeacherMapper;
 import com.university.learningmanagementsystem.repository.TeacherRepository;
+import com.university.learningmanagementsystem.specification.TeacherSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +24,9 @@ public class TeacherService {
     private final TeacherMapper teacherMapper;
 
     @Transactional(readOnly = true)
-    public PageResponse<TeacherDto> findAll(Pageable pageable) {
-        Page<TeacherDto> page = teacherRepository.findAll(pageable).map(teacherMapper::toDto);
+    public PageResponse<TeacherDto> findAll(TeacherFilter filter, Pageable pageable) {
+        Specification<Teacher> specification = TeacherSpecifications.byFilter(filter);
+        Page<TeacherDto> page = teacherRepository.findAll(specification, pageable).map(teacherMapper::toDto);
         return PageResponse.from(page);
     }
 

@@ -3,12 +3,14 @@ package com.university.learningmanagementsystem.controller;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.student.StudentCreateDto;
 import com.university.learningmanagementsystem.dto.student.StudentDto;
+import com.university.learningmanagementsystem.dto.student.StudentFilter;
 import com.university.learningmanagementsystem.dto.student.StudentUpdateDto;
 import com.university.learningmanagementsystem.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,8 +32,15 @@ public class StudentController {
 
     @GetMapping
     public ResponseEntity<PageResponse<StudentDto>> findAll(
-            @PageableDefault(size = 20, sort = "lastName") Pageable pageable) {
-        return ResponseEntity.ok(studentService.findAll(pageable));
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("lastName").ascending());
+        StudentFilter filter = new StudentFilter(firstName, lastName, groupId);
+        return ResponseEntity.ok(studentService.findAll(filter, pageable));
     }
 
     @GetMapping("/{id}")

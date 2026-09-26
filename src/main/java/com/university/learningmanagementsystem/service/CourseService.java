@@ -3,14 +3,17 @@ package com.university.learningmanagementsystem.service;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.course.CourseCreateDto;
 import com.university.learningmanagementsystem.dto.course.CourseDto;
+import com.university.learningmanagementsystem.dto.course.CourseFilter;
 import com.university.learningmanagementsystem.dto.course.CourseUpdateDto;
 import com.university.learningmanagementsystem.entity.Course;
 import com.university.learningmanagementsystem.mapper.CourseMapper;
 import com.university.learningmanagementsystem.repository.CourseRepository;
 import com.university.learningmanagementsystem.repository.TeacherRepository;
+import com.university.learningmanagementsystem.specification.CourseSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +26,9 @@ public class CourseService {
     private final CourseMapper courseMapper;
 
     @Transactional(readOnly = true)
-    public PageResponse<CourseDto> findAll(Pageable pageable) {
-        Page<CourseDto> page = courseRepository.findAll(pageable).map(courseMapper::toDto);
+    public PageResponse<CourseDto> findAll(CourseFilter filter, Pageable pageable) {
+        Specification<Course> specification = CourseSpecifications.byFilter(filter);
+        Page<CourseDto> page = courseRepository.findAll(specification, pageable).map(courseMapper::toDto);
         return PageResponse.from(page);
     }
 

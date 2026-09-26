@@ -3,12 +3,14 @@ package com.university.learningmanagementsystem.controller;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.schedule.ScheduleCreateDto;
 import com.university.learningmanagementsystem.dto.schedule.ScheduleDto;
+import com.university.learningmanagementsystem.dto.schedule.ScheduleFilter;
 import com.university.learningmanagementsystem.dto.schedule.ScheduleUpdateDto;
 import com.university.learningmanagementsystem.service.ScheduleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,8 +34,15 @@ public class ScheduleController {
 
     @GetMapping
     public ResponseEntity<PageResponse<ScheduleDto>> findAll(
-            @PageableDefault(size = 20, sort = "startDate") Pageable pageable) {
-        return ResponseEntity.ok(scheduleService.findAll(pageable));
+            @RequestParam(required = false) Long groupId,
+            @RequestParam(required = false) Long teacherId,
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("startDate").ascending());
+        ScheduleFilter filter = new ScheduleFilter(groupId, teacherId, courseId);
+        return ResponseEntity.ok(scheduleService.findAll(filter, pageable));
     }
 
     @GetMapping("/{id}")

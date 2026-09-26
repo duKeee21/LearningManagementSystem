@@ -3,12 +3,14 @@ package com.university.learningmanagementsystem.controller;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.group.GroupCreateDto;
 import com.university.learningmanagementsystem.dto.group.GroupDto;
+import com.university.learningmanagementsystem.dto.group.GroupFilter;
 import com.university.learningmanagementsystem.dto.group.GroupUpdateDto;
 import com.university.learningmanagementsystem.service.GroupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,8 +32,13 @@ public class GroupController {
 
     @GetMapping
     public ResponseEntity<PageResponse<GroupDto>> findAll(
-            @PageableDefault(size = 20, sort = "name") Pageable pageable) {
-        return ResponseEntity.ok(groupService.findAll(pageable));
+            @RequestParam(required = false) String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        GroupFilter filter = new GroupFilter(name);
+        return ResponseEntity.ok(groupService.findAll(filter, pageable));
     }
 
     @GetMapping("/{id}")
