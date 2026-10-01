@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: LearningManagementSystem
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lms
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+    drop-first: false
+    default-schema: public
+    clear-checksums: false
+
+app:
+  scheduler:
+    cleanup:
+      cron: "0 0 3 * * *"
