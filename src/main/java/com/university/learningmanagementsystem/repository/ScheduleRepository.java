@@ -1,7 +1,7 @@
 package com.university.learningmanagementsystem.repository;
 
 import com.university.learningmanagementsystem.entity.Schedule;
-import jakarta.persistence.EntityNotFoundException;
+import com.university.learningmanagementsystem.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -20,6 +20,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long>, JpaSp
 
     default Schedule requireById(Long id) {
         return findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Расписания с id: " + id + " не существует!"));
+                new ResourceNotFoundException("Расписания с id: " + id + " не существует!"));
     }
 }

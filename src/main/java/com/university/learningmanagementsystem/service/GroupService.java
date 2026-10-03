@@ -7,11 +7,11 @@ import com.university.learningmanagementsystem.dto.group.GroupFilter;
 import com.university.learningmanagementsystem.dto.group.GroupUpdateDto;
 import com.university.learningmanagementsystem.entity.Group;
 import com.university.learningmanagementsystem.entity.Student;
+import com.university.learningmanagementsystem.exception.ResourceNotFoundException;
 import com.university.learningmanagementsystem.mapper.GroupMapper;
 import com.university.learningmanagementsystem.repository.GroupRepository;
 import com.university.learningmanagementsystem.repository.StudentRepository;
 import com.university.learningmanagementsystem.specification.GroupSpecifications;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -77,7 +77,7 @@ public class GroupService {
         }
         Set<Student> students = studentRepository.findAllByIdIn(studentIds);
         if (students.size() != studentIds.size()) {
-            throw new EntityNotFoundException("Студенты не найдены: " + studentIds);
+            throw new ResourceNotFoundException("Студенты не найдены: " + studentIds);
         }
         for (Student student : students) {
             group.getStudents().add(student);
