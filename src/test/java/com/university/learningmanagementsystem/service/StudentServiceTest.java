@@ -1,65 +1,26 @@
 package com.university.learningmanagementsystem.service;
 
+import com.university.learningmanagementsystem.config.IntegrationTestConfig;
 import com.university.learningmanagementsystem.dto.student.StudentCreateDto;
 import com.university.learningmanagementsystem.dto.student.StudentDto;
 import com.university.learningmanagementsystem.dto.student.StudentUpdateDto;
 import com.university.learningmanagementsystem.entity.Group;
 import com.university.learningmanagementsystem.repository.GroupRepository;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
-@Testcontainers
-class StudentServiceTest {
-
-    @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:15");
-
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+class StudentServiceTest extends IntegrationTestConfig {
 
     @Autowired
     private StudentService studentService;
 
     @Autowired
     private GroupRepository groupRepository;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @BeforeEach
-    void setUp() {
-        cleanDatabase();
-    }
-
-    @AfterEach
-    void cleanUp() {
-        cleanDatabase();
-    }
-
-    private void cleanDatabase() {
-        jdbcTemplate.execute("DELETE FROM student_group");
-        jdbcTemplate.execute("DELETE FROM students");
-        jdbcTemplate.execute("DELETE FROM groups");
-    }
 
     private Group createGroup(String name) {
         return groupRepository.save(Group.builder().name(name).build());

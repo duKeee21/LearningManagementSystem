@@ -1,191 +1,154 @@
 package com.university.learningmanagementsystem.controller;
 
-import com.university.learningmanagementsystem.config.TestConfig;
+import com.university.learningmanagementsystem.config.IntegrationTestConfig;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherUpdateDto;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.RestTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.core.type.TypeReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-@Import(TestConfig.class)
-class TeacherControllerTest {
+class TeacherControllerTest extends IntegrationTestConfig {
 
-    @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:15");
-
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @LocalServerPort
-    private int port;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @BeforeEach
-    void setUp() {
-        jdbcTemplate.execute("DELETE FROM teachers");
-    }
-
-    @AfterEach
-    void cleanUp() {
-        jdbcTemplate.execute("DELETE FROM teachers");
-    }
-
-    private String url(String path) {
-        return "http://localhost:" + port + path;
-    }
-
-    private TeacherDto createTeacher(String firstName, String lastName) {
+    private TeacherDto createTeacher(String firstName, String lastName) throws Exception {
         TeacherCreateDto request = new TeacherCreateDto(firstName, lastName);
-        ResponseEntity<TeacherDto> response = restTemplate.postForEntity(
-                url("/api/v1/teachers"), request, TeacherDto.class);
-        return response.getBody();
+        String json = jsonMapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/teachers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return jsonMapper.readValue(
+                result.getResponse().getContentAsString(), TeacherDto.class);
     }
 
     @Test
-    void shouldCreateTeacher() {
+    void shouldCreateTeacher() throws Exception {
         TeacherCreateDto request = new TeacherCreateDto("Иван", "Иванов");
+        String json = jsonMapper.writeValueAsString(request);
 
-        ResponseEntity<TeacherDto> response = restTemplate.postForEntity(
-                url("/api/v1/teachers"), request, TeacherDto.class);
+        MvcResult result = mockMvc.perform(post("/api/v1/teachers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isNotNull();
-        assertThat(response.getBody().firstName()).isEqualTo("Иван");
-        assertThat(response.getBody().lastName()).isEqualTo("Иванов");
+        TeacherDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), TeacherDto.class);
+
+        assertThat(response.id()).isNotNull();
+        assertThat(response.firstName()).isEqualTo("Иван");
+        assertThat(response.lastName()).isEqualTo("Иванов");
     }
 
     @Test
-    void shouldReturnAllTeachers() {
+    void shouldReturnAllTeachers() throws Exception {
         createTeacher("Иван", "Иванов");
         createTeacher("Пётр", "Петров");
 
-        ResponseEntity<PageResponse<TeacherDto>> response = restTemplate.exchange(
-                url("/api/v1/teachers"),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<>() {
+        MvcResult result = mockMvc.perform(get("/api/v1/teachers"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        PageResponse<TeacherDto> page = jsonMapper.readValue(
+                result.getResponse().getContentAsString(),
+                new TypeReference<>() {
                 });
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().content()).hasSize(2);
-        assertThat(response.getBody().totalElements()).isEqualTo(2);
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.totalElements()).isEqualTo(2);
     }
 
     @Test
-    void shouldReturnTeacherById() {
+    void shouldReturnTeacherById() throws Exception {
         TeacherDto created = createTeacher("Иван", "Иванов");
 
-        ResponseEntity<TeacherDto> response = restTemplate.getForEntity(
-                url("/api/v1/teachers/" + created.id()), TeacherDto.class);
+        MvcResult result = mockMvc.perform(get("/api/v1/teachers/" + created.id()))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isEqualTo(created.id());
-        assertThat(response.getBody().firstName()).isEqualTo("Иван");
+        TeacherDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), TeacherDto.class);
+
+        assertThat(response.id()).isEqualTo(created.id());
+        assertThat(response.firstName()).isEqualTo("Иван");
     }
 
     @Test
-    void shouldReturn404WhenTeacherNotFound() {
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                url("/api/v1/teachers/99999"), String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    void shouldReturn404WhenTeacherNotFound() throws Exception {
+        mockMvc.perform(get("/api/v1/teachers/99999"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldUpdateTeacher() {
+    void shouldUpdateTeacher() throws Exception {
         TeacherDto created = createTeacher("Иван", "Иванов");
         TeacherUpdateDto update = new TeacherUpdateDto("Пётр", "Петров");
+        String json = jsonMapper.writeValueAsString(update);
 
-        ResponseEntity<TeacherDto> response = restTemplate.exchange(
-                url("/api/v1/teachers/" + created.id()),
-                HttpMethod.PUT,
-                new HttpEntity<>(update),
-                TeacherDto.class);
+        MvcResult result = mockMvc.perform(put("/api/v1/teachers/" + created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().firstName()).isEqualTo("Пётр");
-        assertThat(response.getBody().lastName()).isEqualTo("Петров");
+        TeacherDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), TeacherDto.class);
+
+        assertThat(response.firstName()).isEqualTo("Пётр");
+        assertThat(response.lastName()).isEqualTo("Петров");
     }
 
     @Test
-    void shouldDeleteTeacher() {
+    void shouldDeleteTeacher() throws Exception {
         TeacherDto created = createTeacher("Иван", "Иванов");
 
-        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
-                url("/api/v1/teachers/" + created.id()),
-                HttpMethod.DELETE,
-                null,
-                Void.class);
+        mockMvc.perform(delete("/api/v1/teachers/" + created.id()))
+                .andExpect(status().isNoContent());
 
-        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-
-        ResponseEntity<String> getResponse = restTemplate.getForEntity(
-                url("/api/v1/teachers/" + created.id()), String.class);
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        mockMvc.perform(get("/api/v1/teachers/" + created.id()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturn400WhenFirstNameIsBlank() {
+    void shouldReturn400WhenFirstNameIsBlank() throws Exception {
         TeacherCreateDto invalid = new TeacherCreateDto("", "Иванов");
+        String json = jsonMapper.writeValueAsString(invalid);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                url("/api/v1/teachers"), invalid, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        mockMvc.perform(post("/api/v1/teachers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shouldFilterTeachersByLastName() {
+    void shouldFilterTeachersByLastName() throws Exception {
         createTeacher("Иван", "Иванов");
         createTeacher("Пётр", "Петров");
         createTeacher("Антон", "Иванов");
 
-        ResponseEntity<PageResponse<TeacherDto>> response = restTemplate.exchange(
-                url("/api/v1/teachers?lastName=Иванов"),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<>() {
+        MvcResult result = mockMvc.perform(get("/api/v1/teachers")
+                        .param("lastName", "Иванов"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        PageResponse<TeacherDto> page = jsonMapper.readValue(
+                result.getResponse().getContentAsString(),
+                new TypeReference<>() {
                 });
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().content()).hasSize(2);
-        assertThat(response.getBody().content())
-                .allMatch(t -> t.lastName().equals("Иванов"));
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.content()).allMatch(t -> t.lastName().equals("Иванов"));
     }
 }

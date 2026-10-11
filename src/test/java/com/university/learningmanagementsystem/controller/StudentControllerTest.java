@@ -1,210 +1,171 @@
 package com.university.learningmanagementsystem.controller;
 
-import com.university.learningmanagementsystem.config.TestConfig;
+import com.university.learningmanagementsystem.config.IntegrationTestConfig;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.group.GroupCreateDto;
 import com.university.learningmanagementsystem.dto.group.GroupDto;
 import com.university.learningmanagementsystem.dto.student.StudentCreateDto;
 import com.university.learningmanagementsystem.dto.student.StudentDto;
 import com.university.learningmanagementsystem.dto.student.StudentUpdateDto;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.RestTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.core.type.TypeReference;
 
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-@Import(TestConfig.class)
-class StudentControllerTest {
+class StudentControllerTest extends IntegrationTestConfig {
 
-    @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:15");
-
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @LocalServerPort
-    private int port;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @BeforeEach
-    void setUp() {
-        cleanDatabase();
-    }
-
-    @AfterEach
-    void cleanUp() {
-        cleanDatabase();
-    }
-
-    private void cleanDatabase() {
-        jdbcTemplate.execute("DELETE FROM student_group");
-        jdbcTemplate.execute("DELETE FROM students");
-        jdbcTemplate.execute("DELETE FROM groups");
-    }
-
-    private String url(String path) {
-        return "http://localhost:" + port + path;
-    }
-
-    private GroupDto createGroup(String name) {
+    private GroupDto createGroup(String name) throws Exception {
         GroupCreateDto request = new GroupCreateDto(name, Set.of());
-        ResponseEntity<GroupDto> response = restTemplate.postForEntity(
-                url("/api/v1/groups"), request, GroupDto.class);
-        return response.getBody();
+        String json = jsonMapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return jsonMapper.readValue(result.getResponse().getContentAsString(), GroupDto.class);
     }
 
-    private StudentDto createStudent(String firstName, String lastName, Set<Long> groupIds) {
+    private StudentDto createStudent(String firstName, String lastName, Set<Long> groupIds) throws Exception {
         StudentCreateDto request = new StudentCreateDto(firstName, lastName, groupIds);
-        ResponseEntity<StudentDto> response = restTemplate.postForEntity(
-                url("/api/v1/students"), request, StudentDto.class);
-        return response.getBody();
+        String json = jsonMapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return jsonMapper.readValue(result.getResponse().getContentAsString(), StudentDto.class);
     }
 
     @Test
-    void shouldCreateStudent() {
+    void shouldCreateStudent() throws Exception {
         GroupDto group = createGroup("Группа A");
-
         StudentCreateDto request = new StudentCreateDto("Иван", "Иванов", Set.of(group.id()));
+        String json = jsonMapper.writeValueAsString(request);
 
-        ResponseEntity<StudentDto> response = restTemplate.postForEntity(
-                url("/api/v1/students"), request, StudentDto.class);
+        MvcResult result = mockMvc.perform(post("/api/v1/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isNotNull();
-        assertThat(response.getBody().firstName()).isEqualTo("Иван");
-        assertThat(response.getBody().lastName()).isEqualTo("Иванов");
-        assertThat(response.getBody().groupIds()).containsExactly(group.id());
+        StudentDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), StudentDto.class);
+
+        assertThat(response.id()).isNotNull();
+        assertThat(response.firstName()).isEqualTo("Иван");
+        assertThat(response.groupIds()).containsExactly(group.id());
     }
 
     @Test
-    void shouldReturn400WhenGroupIdsEmpty() {
+    void shouldReturn400WhenGroupIdsEmpty() throws Exception {
         StudentCreateDto invalid = new StudentCreateDto("Иван", "Иванов", Set.of());
+        String json = jsonMapper.writeValueAsString(invalid);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                url("/api/v1/students"), invalid, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        mockMvc.perform(post("/api/v1/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shouldReturn404WhenGroupNotFound() {
+    void shouldReturn404WhenGroupNotFound() throws Exception {
         StudentCreateDto request = new StudentCreateDto("Иван", "Иванов", Set.of(99999L));
+        String json = jsonMapper.writeValueAsString(request);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                url("/api/v1/students"), request, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        mockMvc.perform(post("/api/v1/students")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturnStudentById() {
+    void shouldReturnStudentById() throws Exception {
         GroupDto group = createGroup("Группа A");
         StudentDto created = createStudent("Иван", "Иванов", Set.of(group.id()));
 
-        ResponseEntity<StudentDto> response = restTemplate.getForEntity(
-                url("/api/v1/students/" + created.id()), StudentDto.class);
+        MvcResult result = mockMvc.perform(get("/api/v1/students/" + created.id()))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isEqualTo(created.id());
-        assertThat(response.getBody().groupIds()).containsExactly(group.id());
+        StudentDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), StudentDto.class);
+
+        assertThat(response.id()).isEqualTo(created.id());
+        assertThat(response.groupIds()).containsExactly(group.id());
     }
 
     @Test
-    void shouldReturn404WhenStudentNotFound() {
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                url("/api/v1/students/99999"), String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    void shouldReturn404WhenStudentNotFound() throws Exception {
+        mockMvc.perform(get("/api/v1/students/99999"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldUpdateStudent() {
+    void shouldUpdateStudent() throws Exception {
         GroupDto groupA = createGroup("Группа A");
         GroupDto groupB = createGroup("Группа Б");
         StudentDto created = createStudent("Иван", "Иванов", Set.of(groupA.id()));
 
         StudentUpdateDto update = new StudentUpdateDto("Пётр", "Петров", Set.of(groupB.id()));
+        String json = jsonMapper.writeValueAsString(update);
 
-        ResponseEntity<StudentDto> response = restTemplate.exchange(
-                url("/api/v1/students/" + created.id()),
-                HttpMethod.PUT,
-                new HttpEntity<>(update),
-                StudentDto.class);
+        MvcResult result = mockMvc.perform(put("/api/v1/students/" + created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().firstName()).isEqualTo("Пётр");
-        assertThat(response.getBody().groupIds()).containsExactly(groupB.id());
+        StudentDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), StudentDto.class);
+
+        assertThat(response.firstName()).isEqualTo("Пётр");
+        assertThat(response.groupIds()).containsExactly(groupB.id());
     }
 
     @Test
-    void shouldDeleteStudent() {
+    void shouldDeleteStudent() throws Exception {
         GroupDto group = createGroup("Группа A");
         StudentDto created = createStudent("Иван", "Иванов", Set.of(group.id()));
 
-        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
-                url("/api/v1/students/" + created.id()),
-                HttpMethod.DELETE,
-                null,
-                Void.class);
+        mockMvc.perform(delete("/api/v1/students/" + created.id()))
+                .andExpect(status().isNoContent());
 
-        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-
-        ResponseEntity<String> getResponse = restTemplate.getForEntity(
-                url("/api/v1/students/" + created.id()), String.class);
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        mockMvc.perform(get("/api/v1/students/" + created.id()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldFilterStudentsByGroupId() {
+    void shouldFilterStudentsByGroupId() throws Exception {
         GroupDto groupA = createGroup("Группа A");
         GroupDto groupB = createGroup("Группа Б");
         createStudent("Иван", "Иванов", Set.of(groupA.id()));
         createStudent("Пётр", "Петров", Set.of(groupA.id()));
         createStudent("Антон", "Антонов", Set.of(groupB.id()));
 
-        ResponseEntity<PageResponse<StudentDto>> response = restTemplate.exchange(
-                url("/api/v1/students?groupId=" + groupA.id()),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<>() {
+        MvcResult result = mockMvc.perform(get("/api/v1/students")
+                        .param("groupId", String.valueOf(groupA.id())))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        PageResponse<StudentDto> page = jsonMapper.readValue(
+                result.getResponse().getContentAsString(),
+                new TypeReference<>() {
                 });
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().content()).hasSize(2);
-        assertThat(response.getBody().content())
-                .allMatch(s -> s.groupIds().contains(groupA.id()));
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.content()).allMatch(s -> s.groupIds().contains(groupA.id()));
     }
 }

@@ -1,205 +1,168 @@
 package com.university.learningmanagementsystem.controller;
 
-import com.university.learningmanagementsystem.config.TestConfig;
+import com.university.learningmanagementsystem.config.IntegrationTestConfig;
 import com.university.learningmanagementsystem.dto.PageResponse;
 import com.university.learningmanagementsystem.dto.course.CourseCreateDto;
 import com.university.learningmanagementsystem.dto.course.CourseDto;
 import com.university.learningmanagementsystem.dto.course.CourseUpdateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherCreateDto;
 import com.university.learningmanagementsystem.dto.teacher.TeacherDto;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.RestTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.core.type.TypeReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-@Import(TestConfig.class)
-class CourseControllerTest {
+class CourseControllerTest extends IntegrationTestConfig {
 
-    @Container
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:15");
-
-    @DynamicPropertySource
-    static void configure(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @LocalServerPort
-    private int port;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @BeforeEach
-    void setUp() {
-        cleanDatabase();
-    }
-
-    @AfterEach
-    void cleanUp() {
-        cleanDatabase();
-    }
-
-    private void cleanDatabase() {
-        jdbcTemplate.execute("DELETE FROM schedule");
-        jdbcTemplate.execute("DELETE FROM student_group");
-        jdbcTemplate.execute("DELETE FROM students");
-        jdbcTemplate.execute("DELETE FROM courses");
-        jdbcTemplate.execute("DELETE FROM groups");
-        jdbcTemplate.execute("DELETE FROM teachers");
-    }
-
-    private String url(String path) {
-        return "http://localhost:" + port + path;
-    }
-
-    private TeacherDto createTeacher(String firstName, String lastName) {
+    private TeacherDto createTeacher(String firstName, String lastName) throws Exception {
         TeacherCreateDto request = new TeacherCreateDto(firstName, lastName);
-        return restTemplate.postForEntity(
-                url("/api/v1/teachers"), request, TeacherDto.class).getBody();
+        String json = jsonMapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/teachers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return jsonMapper.readValue(result.getResponse().getContentAsString(), TeacherDto.class);
     }
 
-    private CourseDto createCourse(String name, Long teacherId) {
+    private CourseDto createCourse(String name, Long teacherId) throws Exception {
         CourseCreateDto request = new CourseCreateDto(name, "Описание", teacherId);
-        return restTemplate.postForEntity(
-                url("/api/v1/courses"), request, CourseDto.class).getBody();
+        String json = jsonMapper.writeValueAsString(request);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return jsonMapper.readValue(result.getResponse().getContentAsString(), CourseDto.class);
     }
 
     @Test
-    void shouldCreateCourse() {
+    void shouldCreateCourse() throws Exception {
         TeacherDto teacher = createTeacher("Иван", "Иванов");
         CourseCreateDto request = new CourseCreateDto("Математика", "Описание", teacher.id());
+        String json = jsonMapper.writeValueAsString(request);
 
-        ResponseEntity<CourseDto> response = restTemplate.postForEntity(
-                url("/api/v1/courses"), request, CourseDto.class);
+        MvcResult result = mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isNotNull();
-        assertThat(response.getBody().name()).isEqualTo("Математика");
-        assertThat(response.getBody().teacherId()).isEqualTo(teacher.id());
+        CourseDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), CourseDto.class);
+
+        assertThat(response.id()).isNotNull();
+        assertThat(response.name()).isEqualTo("Математика");
+        assertThat(response.teacherId()).isEqualTo(teacher.id());
     }
 
     @Test
-    void shouldReturn400WhenNameIsBlank() {
+    void shouldReturn400WhenNameIsBlank() throws Exception {
         TeacherDto teacher = createTeacher("Иван", "Иванов");
         CourseCreateDto invalid = new CourseCreateDto("", "Описание", teacher.id());
+        String json = jsonMapper.writeValueAsString(invalid);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                url("/api/v1/courses"), invalid, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void shouldReturn404WhenTeacherNotFound() {
+    void shouldReturn404WhenTeacherNotFound() throws Exception {
         CourseCreateDto request = new CourseCreateDto("Математика", "Описание", 99999L);
+        String json = jsonMapper.writeValueAsString(request);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                url("/api/v1/courses"), request, String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        mockMvc.perform(post("/api/v1/courses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturnCourseById() {
+    void shouldReturnCourseById() throws Exception {
         TeacherDto teacher = createTeacher("Иван", "Иванов");
         CourseDto created = createCourse("Математика", teacher.id());
 
-        ResponseEntity<CourseDto> response = restTemplate.getForEntity(
-                url("/api/v1/courses/" + created.id()), CourseDto.class);
+        MvcResult result = mockMvc.perform(get("/api/v1/courses/" + created.id()))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().id()).isEqualTo(created.id());
-        assertThat(response.getBody().teacherId()).isEqualTo(teacher.id());
+        CourseDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), CourseDto.class);
+
+        assertThat(response.id()).isEqualTo(created.id());
+        assertThat(response.teacherId()).isEqualTo(teacher.id());
     }
 
     @Test
-    void shouldReturn404WhenCourseNotFound() {
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                url("/api/v1/courses/999"), String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    void shouldReturn404WhenCourseNotFound() throws Exception {
+        mockMvc.perform(get("/api/v1/courses/999"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldUpdateCourse() {
+    void shouldUpdateCourse() throws Exception {
         TeacherDto teacher = createTeacher("Иван", "Иванов");
         CourseDto created = createCourse("Математика", teacher.id());
         CourseUpdateDto update = new CourseUpdateDto("Физика", "Описание", teacher.id());
+        String json = jsonMapper.writeValueAsString(update);
 
-        ResponseEntity<CourseDto> response = restTemplate.exchange(
-                url("/api/v1/courses/" + created.id()),
-                HttpMethod.PUT,
-                new HttpEntity<>(update),
-                CourseDto.class);
+        MvcResult result = mockMvc.perform(put("/api/v1/courses/" + created.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                .andReturn();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().name()).isEqualTo("Физика");
+        CourseDto response = jsonMapper.readValue(
+                result.getResponse().getContentAsString(), CourseDto.class);
+
+        assertThat(response.name()).isEqualTo("Физика");
     }
 
     @Test
-    void shouldDeleteCourse() {
+    void shouldDeleteCourse() throws Exception {
         TeacherDto teacher = createTeacher("Иван", "Иванов");
         CourseDto created = createCourse("Математика", teacher.id());
 
-        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
-                url("/api/v1/courses/" + created.id()),
-                HttpMethod.DELETE,
-                null,
-                Void.class);
+        mockMvc.perform(delete("/api/v1/courses/" + created.id()))
+                .andExpect(status().isNoContent());
 
-        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-
-        ResponseEntity<String> getResponse = restTemplate.getForEntity(
-                url("/api/v1/courses/" + created.id()), String.class);
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        mockMvc.perform(get("/api/v1/courses/" + created.id()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldFilterCoursesByTeacherId() {
+    void shouldFilterCoursesByTeacherId() throws Exception {
         TeacherDto teacherA = createTeacher("Иван", "Иванов");
         TeacherDto teacherB = createTeacher("Пётр", "Петров");
         createCourse("Математика", teacherA.id());
         createCourse("Физика", teacherA.id());
         createCourse("Химия", teacherB.id());
 
-        ResponseEntity<PageResponse<CourseDto>> response = restTemplate.exchange(
-                url("/api/v1/courses?teacherId=" + teacherA.id()),
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<>() {
+        MvcResult result = mockMvc.perform(get("/api/v1/courses")
+                        .param("teacherId", String.valueOf(teacherA.id())))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        PageResponse<CourseDto> page = jsonMapper.readValue(
+                result.getResponse().getContentAsString(),
+                new TypeReference<>() {
                 });
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().content()).hasSize(2);
-        assertThat(response.getBody().content())
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.content())
                 .allMatch(c -> c.teacherId().equals(teacherA.id()));
     }
 }
