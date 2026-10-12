@@ -1,7 +1,7 @@
 package com.university.learningmanagementsystem.repository;
 
 import com.university.learningmanagementsystem.entity.Student;
-import jakarta.persistence.EntityNotFoundException;
+import com.university.learningmanagementsystem.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -14,6 +14,6 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
 
     default Student requireById(Long id) {
         return findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Студента с id: " + id + " не существует!"));
+                new ResourceNotFoundException("Студента с id: " + id + " не существует!"));
     }
 }
